@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SharpLox
 {
-    internal class Scanner
+    public class Scanner
     {
         private readonly string source;
 

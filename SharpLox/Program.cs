@@ -1,69 +1,75 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-class Program {
+using SharpLox;
 
-    static bool hasError = false;
-
-    static void Main(String[] args)
+namespace SharpLox
+{
+    class Program
     {
-        if (args.Length > 1)
+
+        static bool hasError = false;
+
+        static void Main(String[] args)
         {
-            Console.WriteLine("Usage: SharpLox [lox script]");
-            Environment.Exit(64);
-        } 
-        else if (args.Length == 1)
+            if (args.Length > 1)
+            {
+                Console.WriteLine("Usage: SharpLox [lox script]");
+                Environment.Exit(64);
+            }
+            else if (args.Length == 1)
+            {
+                RunFile(args[0]);
+            }
+            else
+            {
+                RunRrompt();
+            }
+        }
+
+        private static void RunRrompt()
         {
-            RunFile(args[0]);
+            while (true)
+            {
+                Console.Write("> ");
+                var line = Console.ReadLine();
+
+                if (line == null) break;
+
+                Run(line);
+
+                hasError = false;
+            }
         }
-        else
+
+        private static void RunFile(string filename)
         {
-            RunRrompt();
-        }
-    }
+            var bytes = System.IO.File.ReadAllBytes(filename);
+            Run(System.Text.UTF8Encoding.UTF8.GetString(bytes));
 
-    private static void RunRrompt()
-    {
-        while (true)
+            if (hasError)
+                Environment.Exit(65);
+        }
+
+        private static void Run(string source)
         {
-            Console.Write("> ");
-            var line = Console.ReadLine();
+            Scanner scanner = new Scanner(source);
+            var tokens = scanner.ScanTokens();
 
-            if (line == null) break;
-
-            Run(line);
-
-            hasError = false;
+            foreach (var token in tokens)
+            {
+                Console.WriteLine(token);
+            }
         }
-    }
 
-    private static void RunFile(string filename)
-    {
-        var bytes = System.IO.File.ReadAllBytes(filename);
-        Run(System.Text.UTF8Encoding.UTF8.GetString(bytes));
-
-        if (hasError)
-            Environment.Exit(65);
-    }
-
-    private static void Run(string source)
-    {
-        Scanner scanner = new Scanner(source);
-        List<Token> tokens = scanner.ScanTokens();
-
-        foreach (var token in tokens) {
-            Console.WriteLine(token);
+        public static void Error(int line, string message)
+        {
+            Report(line, "", message);
         }
-    }
 
-    public static void Error(int line, string message)
-    {
-        Report(line, "", message);
-    }
-
-    private static void Report(int line, string where, string message)
-    {
-        Console.Error.WriteLine("[line " + line + "] Error" + where + ": " + message);
-        hadError = true;
+        private static void Report(int line, string where, string message)
+        {
+            Console.Error.WriteLine("[line " + line + "] Error" + where + ": " + message);
+            hasError = true;
+        }
     }
 }
-

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SharpLox
 {
-    internal class Token
+    public class Token
     {
         readonly TokenType type;
         readonly string lexeme;
