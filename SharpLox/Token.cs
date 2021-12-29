@@ -23,7 +23,7 @@ namespace SharpLox
 
         public override string ToString()
         {
-            return type.ToString() + " " + lexeme + " " + literal.ToString();
+            return type.ToString() + " " + lexeme + " " + literal?.ToString();
         }
     }
 }

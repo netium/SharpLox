@@ -120,7 +120,7 @@ namespace SharpLox
 
         private void AddToken(TokenType type, object literal)
         {
-            string text = source.Substring(start, current);
+            string text = source.Substring(start, current - start);
             tokens.Add(new Token(type, text, literal, line));
         }
 
@@ -155,7 +155,7 @@ namespace SharpLox
 
             Advance();
 
-            string value = source.Substring(start + 1, current - 1);
+            string value = source.Substring(start + 1, (current - 1) - (start + 1));
             AddToken(TokenType.STRING, value);
         }
 
@@ -174,7 +174,7 @@ namespace SharpLox
                 while (IsDigit(Peek())) Advance();
             }
 
-            AddToken(TokenType.NUMBER, double.Parse(source.Substring(start, current)));
+            AddToken(TokenType.NUMBER, double.Parse(source.Substring(start, current - start)));
         }
 
         private char PeekNext()
@@ -187,10 +187,13 @@ namespace SharpLox
         {
             while (IsAlphaNumeric(Peek())) Advance();
 
-            string text = source.Substring(start, current);
-            TokenType type = keywords[text];
-            if (type == null) type = TokenType.IDENTIFIER;
-            AddToken(TokenType.IDENTIFIER);
+            string text = source.Substring(start, current - start);
+            var type = TokenType.IDENTIFIER;
+            if (keywords.ContainsKey(text))
+            {
+                type = keywords[text];
+            }
+            AddToken(type);
         }
 
         private bool IsAlpha(char c)
