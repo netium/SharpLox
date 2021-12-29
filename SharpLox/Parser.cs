@@ -16,6 +16,17 @@ namespace SharpLox
             this.tokens = tokens;
         }
 
+        internal Expr Parse()
+        {
+            try
+            {
+                return Expression();
+            }
+            catch (ParseException exp)
+            {
+                return null;
+            }
+        }
         private Expr Expression()
         {
             return Equality();
@@ -105,8 +116,7 @@ namespace SharpLox
                 return new Grouping(expr);
             }
 
-            // May be wrong for following statement
-            return null;
+            throw Error(Peek(), "Expect expression.");
         }
 
         private bool Match(params TokenType[] types)
@@ -161,6 +171,31 @@ namespace SharpLox
         {
             Program.Error(token, message);
             return new ParseException();
+        }
+
+        private void Synchronize()
+        {
+            Advance();
+
+            while (!IsAtEnd())
+            {
+                if (Previous().type == TokenType.SEMICOLON) return;
+
+                switch(Peek().type)
+                {
+                    case TokenType.CLASS:
+                    case TokenType.FUN:
+                    case TokenType.VAR:
+                    case TokenType.FOR:
+                    case TokenType.IF:
+                    case TokenType.WHILE:
+                    case TokenType.PRINT:
+                    case TokenType.RETURN:
+                        return;
+                }
+
+                Advance();
+            }
         }
     }
 }

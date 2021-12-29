@@ -43,7 +43,7 @@ namespace SharpLox
             this.source = source;
         }
 
-        public IList<Token> ScanTokens()
+        public List<Token> ScanTokens()
         {
             while (!IsAtEnd())
             {

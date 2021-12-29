@@ -52,13 +52,14 @@ namespace SharpLox
 
         private static void Run(string source)
         {
-            Scanner scanner = new Scanner(source);
+            var scanner = new Scanner(source);
             var tokens = scanner.ScanTokens();
+            var parser = new Parser(tokens);
+            var expression = parser.Parse();
 
-            foreach (var token in tokens)
-            {
-                Console.WriteLine(token);
-            }
+            if (hasError) return;
+
+            // Console.WriteLine(AstPrinter().Print(expression));
         }
 
         public static void Error(int line, string message)
