@@ -3,19 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SharpLox.Exprs;
+using SharpLox.Stmts;
 
-namespace SharpLox
+namespace SharpLox.Exprs
 {
 public interface IVisitor<R>
 {
-R visitBinaryExpr (Binary expr);
-R visitGroupingExpr (Grouping expr);
-R visitLiteralExpr (Literal expr);
-R visitUnaryExpr (Unary expr);
+R VisitBinaryExpr (Binary expr);
+R VisitGroupingExpr (Grouping expr);
+R VisitLiteralExpr (Literal expr);
+R VisitUnaryExpr (Unary expr);
+R VisitVariableExpr (Variable expr);
 }
 public abstract class Expr
 {
-public abstract R accept<R>(IVisitor<R> visitor);
+public abstract R Accept<R>(IVisitor<R> visitor);
 }
 public class Binary : Expr
 {
@@ -30,9 +33,9 @@ internal readonly Expr left;
 internal readonly Token op;
 internal readonly Expr right;
 
-public override R accept<R>(IVisitor<R> visitor)
+public override R Accept<R>(IVisitor<R> visitor)
 {
- return visitor.visitBinaryExpr(this);
+ return visitor.VisitBinaryExpr(this);
 }
 }
 public class Grouping : Expr
@@ -44,9 +47,9 @@ this.expression = expression;
 
 internal readonly Expr expression;
 
-public override R accept<R>(IVisitor<R> visitor)
+public override R Accept<R>(IVisitor<R> visitor)
 {
- return visitor.visitGroupingExpr(this);
+ return visitor.VisitGroupingExpr(this);
 }
 }
 public class Literal : Expr
@@ -58,9 +61,9 @@ this.value = value;
 
 internal readonly object value;
 
-public override R accept<R>(IVisitor<R> visitor)
+public override R Accept<R>(IVisitor<R> visitor)
 {
- return visitor.visitLiteralExpr(this);
+ return visitor.VisitLiteralExpr(this);
 }
 }
 public class Unary : Expr
@@ -74,9 +77,23 @@ this.right = right;
 internal readonly Token op;
 internal readonly Expr right;
 
-public override R accept<R>(IVisitor<R> visitor)
+public override R Accept<R>(IVisitor<R> visitor)
 {
- return visitor.visitUnaryExpr(this);
+ return visitor.VisitUnaryExpr(this);
+}
+}
+public class Variable : Expr
+{
+public Variable(Token name)
+{
+this.name = name;
+}
+
+internal readonly Token name;
+
+public override R Accept<R>(IVisitor<R> visitor)
+{
+ return visitor.VisitVariableExpr(this);
 }
 }
 }

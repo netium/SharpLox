@@ -3,17 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SharpLox.Exprs;
+using SharpLox.Stmts;
 
 namespace SharpLox
 {
-    internal class Interpreter : IVisitor<object>
+    internal class Interpreter : SharpLox.Exprs.IVisitor<object>, SharpLox.Stmts.IVisitor<object>
     {
-        internal void Interpret(Expr expression)
+        private LoxEnvironment environment = new LoxEnvironment();
+
+        internal void Interpret(List<Stmt> statements)
         {
             try
             {
-                object value = Evaluate(expression);
-                Console.WriteLine(Stringify(value));
+                foreach (var statement in statements)
+                {
+                    Execute(statement);
+                }
             }
             catch (RuntimeErrorException exp)
             {
@@ -22,7 +28,7 @@ namespace SharpLox
         }
 
 
-        public object visitBinaryExpr(Binary expr)
+        public object VisitBinaryExpr(Binary expr)
         {
             object left = Evaluate(expr.left);
             object right = Evaluate(expr.right);
@@ -69,17 +75,17 @@ namespace SharpLox
             return null;
         }
 
-        public object visitGroupingExpr(Grouping expr)
+        public object VisitGroupingExpr(Grouping expr)
         {
             return Evaluate(expr.expression);
         }
 
-        public object visitLiteralExpr(Literal expr)
+        public object VisitLiteralExpr(Literal expr)
         {
             return expr.value;
         }
 
-        public object visitUnaryExpr(Unary expr)
+        public object VisitUnaryExpr(Unary expr)
         {
             object right = Evaluate(expr.right);
 
@@ -104,7 +110,12 @@ namespace SharpLox
 
         private object Evaluate(Expr expr)
         {
-            return expr.accept(this);
+            return expr.Accept(this);
+        }
+
+        private void Execute(Stmt stmt)
+        {
+            stmt.Accept(this);
         }
 
         private bool IsEqual(object a, object b)
@@ -141,6 +152,37 @@ namespace SharpLox
             }
 
             return obj.ToString();
+        }
+
+        public object VisitExpressionStmt(Expression stmt)
+        {
+            Evaluate(stmt.expression);
+            return null;
+        }
+
+        public object VisitPrintStmt(Print stmt)
+        {
+            var value = Evaluate(stmt.expression);
+            Console.WriteLine(Stringify(value));
+            return null;
+        }
+
+        public object VisitVariableExpr(Variable expr)
+        {
+            return environment.Get(expr.name);
+        }
+
+        public object VisitVarStmt(Var stmt)
+        {
+            object value = null;
+            if (stmt.initializer != null)
+            {
+                value = Evaluate(stmt.initializer);
+            }
+
+            environment.Define(stmt.name.lexeme, value);
+
+            return null;
         }
     }
 }

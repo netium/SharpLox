@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SharpLox.Exprs;
+using SharpLox.Stmts;
 
 namespace SharpLox
 {
@@ -16,20 +18,70 @@ namespace SharpLox
             this.tokens = tokens;
         }
 
-        internal Expr Parse()
+        internal List<Stmt> Parse()
         {
-            try
-            {
-                return Expression();
-            }
-            catch (ParseException exp)
-            {
-                return null;
-            }
+                List<Stmt> statements = new List<Stmt>();
+                while (!IsAtEnd())
+                {
+                    statements.Add(Declaration());
+                }
+                return statements;
         }
         private Expr Expression()
         {
             return Equality();
+        }
+
+        private Stmt Declaration()
+        {
+            try
+            {
+                if (Match(TokenType.VAR)) return VarDeclaration();
+
+                return Statement();
+            }
+            catch (ParseException exp)
+            {
+                Synchronize();
+                return null;
+            }
+        }
+
+        private Stmt Statement()
+        {
+            if (Match(TokenType.PRINT)) return PrintStatement();
+
+            return ExpressionStatement();
+        }
+
+        private Stmt PrintStatement()
+        {
+            Expr value = Expression();
+            Consume(TokenType.SEMICOLON, "Expect ';' after value.");
+            return new Print(value);
+        }
+
+        private Stmt VarDeclaration()
+        {
+            var name = Consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+            Expr initializer = null;
+
+            if (Match(TokenType.EQUAL))
+            {
+                initializer = Expression();
+            }
+
+            Consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+
+            return new Var(name, initializer);
+        }
+
+        private Stmt ExpressionStatement()
+        {
+            var expr = Expression();
+            Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+            return new Expression(expr);
         }
 
         private Expr Equality()
@@ -108,6 +160,10 @@ namespace SharpLox
             if (Match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Literal(Previous().literal);
+            }
+            if (Match(TokenType.IDENTIFIER))
+            {
+                return new Variable(Previous());
             }
             if (Match(TokenType.LEFT_PAREN))
             {

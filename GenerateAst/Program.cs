@@ -13,7 +13,14 @@ DefineAst(outputDir, "Expr", new List<string>()
     "Binary : Expr left, Token op, Expr right",
     "Grouping : Expr expression",
     "Literal : object value",
-    "Unary : Token op, Expr right"
+    "Unary : Token op, Expr right",
+    "Variable : Token name"
+});
+DefineAst(outputDir, "Stmt", new List<string>()
+{
+    "Expression : Expr expression",
+    "Print : Expr expression",
+    "Var : Token name, Expr initializer"
 });
 
 void DefineAst(string outputDir, string baseName, List<string> types)
@@ -28,10 +35,12 @@ void DefineAst(string outputDir, string baseName, List<string> types)
         sw.WriteLine("using System.Linq;");
         sw.WriteLine("using System.Text;");
         sw.WriteLine("using System.Threading.Tasks;");
+        sw.WriteLine("using SharpLox.Exprs;");
+        sw.WriteLine("using SharpLox.Stmts;");
         
         sw.WriteLine("");
 
-        sw.WriteLine("namespace SharpLox");
+        sw.WriteLine("namespace SharpLox." + baseName + "s");
         sw.WriteLine("{");
 
         // Visitor interface
@@ -43,7 +52,7 @@ void DefineAst(string outputDir, string baseName, List<string> types)
 
         sw.WriteLine("{");
 
-        sw.WriteLine("public abstract R accept<R>(IVisitor<R> visitor);");
+        sw.WriteLine("public abstract R Accept<R>(IVisitor<R> visitor);");
 
         sw.WriteLine("}");
 
@@ -67,7 +76,7 @@ void DefineVisitor(StreamWriter sw, string baseName, List<string> types)
     foreach (var type in types)
     {
         var typeName = type.Split(':')[0].Trim();
-        sw.WriteLine("R visit" + typeName + baseName + " (" + typeName + " " + baseName.ToLower() + ");");
+        sw.WriteLine("R Visit" + typeName + baseName + " (" + typeName + " " + baseName.ToLower() + ");");
     }
 
     sw.WriteLine("}");
@@ -100,9 +109,9 @@ void DefineType(StreamWriter sw, string baseName, string className, string field
 
     // Visitor pattern
     sw.WriteLine();
-    sw.WriteLine("public override R accept<R>(IVisitor<R> visitor)");
+    sw.WriteLine("public override R Accept<R>(IVisitor<R> visitor)");
     sw.WriteLine("{");
-    sw.WriteLine(" return visitor.visit" + className + baseName + "(this);");
+    sw.WriteLine(" return visitor.Visit" + className + baseName + "(this);");
     sw.WriteLine("}");
     sw.WriteLine("}");
 }
