@@ -217,5 +217,45 @@ namespace SharpLox
                 this.environment = previous;
             }
         }
+
+        public object VisitIfStmt(If stmt)
+        {
+            if (IsTruthy(Evaluate(stmt.condition)))
+            {
+                Execute(stmt.thenBranch);
+            }
+            else if (stmt.elseBranch != null)
+            {
+                Execute(stmt.elseBranch);
+            }
+
+            return null;
+        }
+
+        public object VisitLogicalExpr(Logical expr)
+        {
+            var left = Evaluate(expr.left);
+
+            if (expr.op.type == TokenType.OR)
+            {
+                if (IsTruthy(left)) return left;
+            }
+            else
+            {
+                if (!IsTruthy(left)) return left;
+            }
+
+            return Evaluate(expr.right);
+        }
+
+        public object VisitWhileStmt(While stmt)
+        {
+            while (IsTruthy(Evaluate(stmt.condition)))
+            {
+                Execute(stmt.body);
+            }
+
+            return null;
+        }
     }
 }

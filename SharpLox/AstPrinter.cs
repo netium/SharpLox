@@ -29,6 +29,11 @@ namespace SharpLox
             throw new NotImplementedException();
         }
 
+        public string VisitLogicalExpr(Logical expr)
+        {
+            throw new NotImplementedException();
+        }
+
         public string VisitUnaryExpr(Unary expr)
         {
             throw new NotImplementedException();
