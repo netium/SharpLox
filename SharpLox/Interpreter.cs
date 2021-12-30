@@ -184,5 +184,12 @@ namespace SharpLox
 
             return null;
         }
+
+        public object VisitAssignExpr(Assign expr)
+        {
+            object value = Evaluate(expr.value);
+            environment.Assign(expr.name, value);
+            return value;
+        }
     }
 }

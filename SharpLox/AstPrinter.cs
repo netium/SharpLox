@@ -9,6 +9,11 @@ namespace SharpLox
 {
     internal class AstPrinter : IVisitor<string>
     {
+        public string VisitAssignExpr(Assign expr)
+        {
+            throw new NotImplementedException();
+        }
+
         public string VisitBinaryExpr(Binary expr)
         {
             return ""; // return Parenthesize(expr.op.lexeme, expr.left, expr.right);

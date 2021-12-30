@@ -29,7 +29,7 @@ namespace SharpLox
         }
         private Expr Expression()
         {
-            return Equality();
+            return Assignment();
         }
 
         private Stmt Declaration()
@@ -82,6 +82,26 @@ namespace SharpLox
             var expr = Expression();
             Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
             return new Expression(expr);
+        }
+
+        private Expr Assignment()
+        {
+            var expr = Equality();
+
+            if (Match(TokenType.EQUAL))
+            {
+                var equals = Previous();
+                var value = Assignment();
+                if (expr is Variable)
+                {
+                    var name = ((Variable)expr).name;
+                    return new Assign(name, value);
+                }
+
+                Error(equals, "Invalid assignment target.");
+            }
+
+            return expr;
         }
 
         private Expr Equality()

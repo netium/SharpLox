@@ -10,6 +10,7 @@ namespace SharpLox.Exprs
 {
 public interface IVisitor<R>
 {
+R VisitAssignExpr (Assign expr);
 R VisitBinaryExpr (Binary expr);
 R VisitGroupingExpr (Grouping expr);
 R VisitLiteralExpr (Literal expr);
@@ -19,6 +20,22 @@ R VisitVariableExpr (Variable expr);
 public abstract class Expr
 {
 public abstract R Accept<R>(IVisitor<R> visitor);
+}
+public class Assign : Expr
+{
+public Assign(Token name, Expr value)
+{
+this.name = name;
+this.value = value;
+}
+
+internal readonly Token name;
+internal readonly Expr value;
+
+public override R Accept<R>(IVisitor<R> visitor)
+{
+ return visitor.VisitAssignExpr(this);
+}
 }
 public class Binary : Expr
 {

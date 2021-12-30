@@ -24,5 +24,15 @@ namespace SharpLox
 
             throw new RuntimeErrorException(name, "Undefined variable '" + name.lexeme + "'.");
         }
+
+        internal void Assign(Token name, object value)
+        {
+            if (values.ContainsKey(name.lexeme))
+            {
+                values[name.lexeme] = value;
+                return;
+            }
+            throw new RuntimeErrorException(name, "Undefined variable '" + name.lexeme + "'.");
+        }
     }
 }
