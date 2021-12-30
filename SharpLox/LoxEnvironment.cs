@@ -10,6 +10,18 @@ namespace SharpLox
     {
         private readonly Dictionary<string, object> values = new Dictionary<string, object>();
 
+        private readonly LoxEnvironment enclosing;
+
+        internal LoxEnvironment()
+        {
+            this.enclosing = null;
+        }
+
+        internal LoxEnvironment(LoxEnvironment enclosing)
+        {
+            this.enclosing = enclosing;
+        }
+
         internal void Define(string name, object value)
         {
             values.Add(name, value);
@@ -21,6 +33,7 @@ namespace SharpLox
             {
                 return values[name.lexeme];
             }
+            if (this.enclosing != null) return enclosing.Get(name);
 
             throw new RuntimeErrorException(name, "Undefined variable '" + name.lexeme + "'.");
         }
@@ -32,6 +45,13 @@ namespace SharpLox
                 values[name.lexeme] = value;
                 return;
             }
+
+            if (this.enclosing != null)
+            {
+                enclosing.Assign(name, value);
+                return;
+            }
+
             throw new RuntimeErrorException(name, "Undefined variable '" + name.lexeme + "'.");
         }
     }

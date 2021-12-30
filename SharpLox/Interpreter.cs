@@ -191,5 +191,31 @@ namespace SharpLox
             environment.Assign(expr.name, value);
             return value;
         }
+
+        public object VisitBlockStmt(Block stmt)
+        {
+            ExecuteBlock(stmt.statements, new LoxEnvironment(environment));
+
+            return null;
+        }
+
+        private void ExecuteBlock(List<Stmt> statements, LoxEnvironment environment)
+        {
+            LoxEnvironment previous = this.environment;
+
+            try
+            {
+                this.environment = environment;
+
+                foreach (var statement in statements)
+                {
+                    Execute(statement);
+                }
+            }
+            finally
+            {
+                this.environment = previous;
+            }
+        }
     }
 }

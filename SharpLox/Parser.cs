@@ -50,6 +50,7 @@ namespace SharpLox
         private Stmt Statement()
         {
             if (Match(TokenType.PRINT)) return PrintStatement();
+            if (Match(TokenType.LEFT_BRACE)) return new Block(Block());
 
             return ExpressionStatement();
         }
@@ -193,6 +194,20 @@ namespace SharpLox
             }
 
             throw Error(Peek(), "Expect expression.");
+        }
+
+        private List<Stmt> Block()
+        {
+            List<Stmt> statements = new List<Stmt>();
+
+            while (!Check(TokenType.RIGHT_BRACE) && !IsAtEnd())
+            {
+                statements.Add(Declaration());
+            }
+
+            Consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+
+            return statements;
         }
 
         private bool Match(params TokenType[] types)
