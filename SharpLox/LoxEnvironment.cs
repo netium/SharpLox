@@ -12,6 +12,8 @@ namespace SharpLox
 
         private readonly LoxEnvironment enclosing;
 
+        internal LoxEnvironment Enclosing { get => enclosing; }
+
         internal LoxEnvironment()
         {
             this.enclosing = null;

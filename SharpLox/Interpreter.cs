@@ -358,6 +358,12 @@ namespace SharpLox
 
             environment.Define(stmt.name.lexeme, null);
 
+            if (stmt.superclass != null)
+            {
+                environment = new LoxEnvironment(environment);
+                environment.Define("super", superclass);
+            }
+
             Dictionary<string, LoxFunction> methods = new Dictionary<string, LoxFunction>();
 
             foreach (var method in stmt.methods)
@@ -368,6 +374,11 @@ namespace SharpLox
             }
 
             var klass = new LoxClass(stmt.name.lexeme, (LoxClass)superclass, methods);
+
+            if (superclass != null)
+            {
+                environment = environment.Enclosing;
+            }
 
             environment.Assign(stmt.name, klass);
 
@@ -404,6 +415,22 @@ namespace SharpLox
         public object VisitThisExpr(This expr)
         {
             return LookupVariable(expr.keyword, expr);
+        }
+
+        public object VisitSuperExpr(Super expr)
+        {
+            int distance = locals[expr];
+            LoxClass superclass = (LoxClass)environment.GetAt(distance, "super");
+            LoxInstance obj = (LoxInstance)environment.GetAt(distance - 1, "this");
+
+            var method = superclass.FindMethod(expr.method.lexeme);
+
+            if (method == null)
+            {
+                throw new RuntimeErrorException(expr.method, "Undefined proper '" + expr.method.lexeme + "'.");
+            }
+
+            return method.Bind(obj);
         }
     }
 }

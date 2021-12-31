@@ -17,7 +17,8 @@ namespace SharpLox
         private enum ClassType
         {
             NONE,
-            CLASS
+            CLASS,
+            SUBCLASS
         }
 
         private ClassType currentClass = ClassType.NONE;
@@ -272,7 +273,13 @@ namespace SharpLox
 
             if (stmt.superclass != null)
             {
+                currentClass = ClassType.SUBCLASS;
                 Resolve(stmt.superclass);
+            }
+            if (stmt.superclass != null)
+            {
+                BeginScope();
+                scopes.Peek().Add("super", true);
             }
 
             BeginScope();
@@ -291,6 +298,8 @@ namespace SharpLox
             }
 
             EndScope();
+
+            if (stmt.superclass != null) EndScope();
 
             currentClass = enclosingClass;
 
@@ -319,6 +328,21 @@ namespace SharpLox
                 Program.Error(expr.keyword, "Cannot use 'this' outside of a class.");
             }
 
+            ResolveLocal(expr, expr.keyword);
+
+            return null;
+        }
+
+        public object VisitSuperExpr(Super expr)
+        {
+            if (currentClass == ClassType.NONE)
+            {
+                Program.Error(expr.keyword, "Cannot use 'super' outside of a class.");
+            }
+            else if (currentClass != ClassType.SUBCLASS)
+            {
+                Program.Error(expr.keyword, "Cannot use 'super' in a class with no superclass.");
+            }
             ResolveLocal(expr, expr.keyword);
 
             return null;
