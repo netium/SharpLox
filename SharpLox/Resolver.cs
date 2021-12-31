@@ -265,6 +265,16 @@ namespace SharpLox
             Declare(stmt.name);
             Define(stmt.name);
 
+            if (stmt.superclass != null && stmt.name.lexeme.Equals(stmt.superclass.name.lexeme))
+            {
+                Program.Error(stmt.superclass.name, "A class cannot inherit form itself.");
+            }
+
+            if (stmt.superclass != null)
+            {
+                Resolve(stmt.superclass);
+            }
+
             BeginScope();
             scopes.Peek().Add("this", true);
 

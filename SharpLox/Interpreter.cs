@@ -345,6 +345,17 @@ namespace SharpLox
 
         public object VisitClassStmt(Class stmt)
         {
+            object superclass = null;
+            
+            if (stmt.superclass != null)
+            {
+                superclass = Evaluate(stmt.superclass);
+                if (! (superclass is LoxClass))
+                {
+                    throw new RuntimeErrorException(stmt.superclass.name, "Superclass must be a class.");
+                }
+            }
+
             environment.Define(stmt.name.lexeme, null);
 
             Dictionary<string, LoxFunction> methods = new Dictionary<string, LoxFunction>();
@@ -356,7 +367,7 @@ namespace SharpLox
                 methods.Add(method.name.lexeme, function);
             }
 
-            var klass = new LoxClass(stmt.name.lexeme, methods);
+            var klass = new LoxClass(stmt.name.lexeme, (LoxClass)superclass, methods);
 
             environment.Assign(stmt.name, klass);
 

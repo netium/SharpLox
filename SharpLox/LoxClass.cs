@@ -10,12 +10,15 @@ namespace SharpLox
     {
         private readonly string name;
 
+        private readonly LoxClass superclass;
+
         private readonly Dictionary<string, LoxFunction> methods;
 
         internal string Name { get => name; }
 
-        internal LoxClass(string name, Dictionary<string, LoxFunction> methods)
+        internal LoxClass(string name, LoxClass superclass, Dictionary<string, LoxFunction> methods)
         {
+            this.superclass = superclass;
             this.name = name;
             this.methods = methods;
         }
@@ -51,6 +54,11 @@ namespace SharpLox
             if (methods.ContainsKey(name))
             {
                 return methods[name];
+            }
+
+            if (superclass != null)
+            {
+                return superclass.FindMethod(name);
             }
 
             return null;

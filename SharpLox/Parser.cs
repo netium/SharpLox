@@ -64,6 +64,15 @@ namespace SharpLox
         private Stmt ClassDeclaration()
         {
             var name = Consume(TokenType.IDENTIFIER, "Expect class name.");
+
+            Variable superclass = null;
+
+            if (Match(TokenType.LESS))
+            {
+                Consume(TokenType.IDENTIFIER, "Expect superclass name.");
+                superclass = new Variable(Previous());
+            }
+
             Consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
             List<Function> methods = new List<Function>();
@@ -75,7 +84,7 @@ namespace SharpLox
 
             Consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-            return new Class(name, methods);
+            return new Class(name, superclass, methods);
         }
 
         private Stmt ReturnStatement()
@@ -354,6 +363,13 @@ namespace SharpLox
             if (Match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Literal(Previous().literal);
+            }
+            if (Match(TokenType.SUPER))
+            {
+                var keyword = Previous();
+                Consume(TokenType.DOT, "Expect '.' after 'super'.");
+                var method = Consume(TokenType.IDENTIFIER, "Expect superclass method name.");
+                return new Super(keyword, method);
             }
             if (Match(TokenType.THIS)) return new This(Previous());
             if (Match(TokenType.IDENTIFIER))

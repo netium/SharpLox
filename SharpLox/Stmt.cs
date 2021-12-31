@@ -40,13 +40,15 @@ public override R Accept<R>(IVisitor<R> visitor)
 }
 public class Class : Stmt
 {
-public Class(Token name, List<Function> methods)
+public Class(Token name, Variable superclass, List<Function> methods)
 {
 this.name = name;
+this.superclass = superclass;
 this.methods = methods;
 }
 
 internal readonly Token name;
+internal readonly Variable superclass;
 internal readonly List<Function> methods;
 
 public override R Accept<R>(IVisitor<R> visitor)
