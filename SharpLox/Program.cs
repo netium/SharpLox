@@ -64,6 +64,11 @@ namespace SharpLox
 
             if (hasError) return;
 
+            var resolver = new Resolver(interpreter);
+            resolver.Resolve(statements);
+
+            if (hasError) return;
+
             interpreter.Interpret(statements);
         }
 

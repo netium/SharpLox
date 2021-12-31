@@ -12,9 +12,12 @@ namespace SharpLox
     {
         private readonly LoxEnvironment globals = new LoxEnvironment();
 
+        private readonly Dictionary<Expr, int> locals = new Dictionary<Expr, int>();
+
         private LoxEnvironment environment;
 
         internal LoxEnvironment Globals { get => globals; }
+
 
         internal Interpreter()
         {
@@ -165,6 +168,11 @@ namespace SharpLox
             return obj.ToString();
         }
 
+        internal void Resolve(Expr expr, int depth)
+        {
+            locals[expr] = depth;
+        }
+
         public object VisitExpressionStmt(Expression stmt)
         {
             Evaluate(stmt.expression);
@@ -180,7 +188,7 @@ namespace SharpLox
 
         public object VisitVariableExpr(Variable expr)
         {
-            return environment.Get(expr.name);
+            return LookupVariable(expr.name, expr);
         }
 
         public object VisitVarStmt(Var stmt)
@@ -199,7 +207,10 @@ namespace SharpLox
         public object VisitAssignExpr(Assign expr)
         {
             object value = Evaluate(expr.value);
-            environment.Assign(expr.name, value);
+            int distance = locals[expr];
+            environment.AssignAt(distance, expr.name, value);
+            // if distance is object and null
+            // globals.Assign(expr.name, value);
             return value;
         }
 
@@ -297,7 +308,7 @@ namespace SharpLox
 
         public object VisitFunctionStmt(Function stmt)
         {
-            var function = new LoxFunction(stmt);
+            var function = new LoxFunction(stmt, environment);
 
             environment.Define(stmt.name.lexeme, function);
 
@@ -310,6 +321,15 @@ namespace SharpLox
             if (stmt.value != null) value = Evaluate(stmt.value);
 
             throw new ReturnException(value);
+        }
+
+        private object LookupVariable(Token name, Expr expr)
+        {
+            int distance = locals[expr];
+            environment.GetAt(distance, name.lexeme);
+
+            // if distance is object and it's null
+            // return globals[name]
         }
     }
 }
