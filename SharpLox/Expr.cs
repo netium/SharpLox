@@ -12,6 +12,7 @@ public interface IVisitor<R>
 {
 R VisitAssignExpr (Assign expr);
 R VisitBinaryExpr (Binary expr);
+R VisitCallExpr (Call expr);
 R VisitGroupingExpr (Grouping expr);
 R VisitLiteralExpr (Literal expr);
 R VisitLogicalExpr (Logical expr);
@@ -54,6 +55,24 @@ internal readonly Expr right;
 public override R Accept<R>(IVisitor<R> visitor)
 {
  return visitor.VisitBinaryExpr(this);
+}
+}
+public class Call : Expr
+{
+public Call(Expr callee, Token paren, List<Expr> arguments)
+{
+this.callee = callee;
+this.paren = paren;
+this.arguments = arguments;
+}
+
+internal readonly Expr callee;
+internal readonly Token paren;
+internal readonly List<Expr> arguments;
+
+public override R Accept<R>(IVisitor<R> visitor)
+{
+ return visitor.VisitCallExpr(this);
 }
 }
 public class Grouping : Expr

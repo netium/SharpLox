@@ -19,6 +19,11 @@ namespace SharpLox
             return ""; // return Parenthesize(expr.op.lexeme, expr.left, expr.right);
         }
 
+        public string VisitCallExpr(Call expr)
+        {
+            throw new NotImplementedException();
+        }
+
         public string VisitGroupingExpr(Grouping expr)
         {
             return ""; // return Parenthesize("group", expr.expression);

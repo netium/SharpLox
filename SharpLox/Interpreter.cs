@@ -10,7 +10,18 @@ namespace SharpLox
 {
     internal class Interpreter : SharpLox.Exprs.IVisitor<object>, SharpLox.Stmts.IVisitor<object>
     {
-        private LoxEnvironment environment = new LoxEnvironment();
+        private readonly LoxEnvironment globals = new LoxEnvironment();
+
+        private LoxEnvironment environment;
+
+        internal LoxEnvironment Globals { get => globals; }
+
+        internal Interpreter()
+        {
+            environment = globals;
+
+            globals.Define("clock", new ClockNativeFunction());
+        }
 
         internal void Interpret(List<Stmt> statements)
         {
@@ -199,7 +210,7 @@ namespace SharpLox
             return null;
         }
 
-        private void ExecuteBlock(List<Stmt> statements, LoxEnvironment environment)
+        internal void ExecuteBlock(List<Stmt> statements, LoxEnvironment environment)
         {
             LoxEnvironment previous = this.environment;
 
@@ -256,6 +267,49 @@ namespace SharpLox
             }
 
             return null;
+        }
+
+        public object VisitCallExpr(Call expr)
+        {
+            object callee = Evaluate(expr.callee);
+
+            var arguments = new List<object>();
+
+            foreach (var argument in expr.arguments)
+            {
+                arguments.Add(Evaluate(argument));
+            }
+
+            if (!(callee is ILoxCallable))
+            {
+                throw new RuntimeErrorException(expr.paren, "Can only call functions and classes.");
+            }
+
+            ILoxCallable function = (ILoxCallable)callee;
+
+            if (arguments.Count != function.Arity())
+            {
+                throw new RuntimeErrorException(expr.paren, "Expected " + function.Arity() + " arguments but got " + arguments.Count + ".");
+            }
+
+            return function.Call(this, arguments);
+        }
+
+        public object VisitFunctionStmt(Function stmt)
+        {
+            var function = new LoxFunction(stmt);
+
+            environment.Define(stmt.name.lexeme, function);
+
+            return null;
+        }
+
+        public object VisitReturnStmt(Return stmt)
+        {
+            object value = null;
+            if (stmt.value != null) value = Evaluate(stmt.value);
+
+            throw new ReturnException(value);
         }
     }
 }

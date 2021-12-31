@@ -12,8 +12,10 @@ public interface IVisitor<R>
 {
 R VisitBlockStmt (Block stmt);
 R VisitExpressionStmt (Expression stmt);
+R VisitFunctionStmt (Function stmt);
 R VisitIfStmt (If stmt);
 R VisitPrintStmt (Print stmt);
+R VisitReturnStmt (Return stmt);
 R VisitVarStmt (Var stmt);
 R VisitWhileStmt (While stmt);
 }
@@ -49,6 +51,24 @@ public override R Accept<R>(IVisitor<R> visitor)
  return visitor.VisitExpressionStmt(this);
 }
 }
+public class Function : Stmt
+{
+public Function(Token name, List<Token> paramList, List<Stmt> body)
+{
+this.name = name;
+this.paramList = paramList;
+this.body = body;
+}
+
+internal readonly Token name;
+internal readonly List<Token> paramList;
+internal readonly List<Stmt> body;
+
+public override R Accept<R>(IVisitor<R> visitor)
+{
+ return visitor.VisitFunctionStmt(this);
+}
+}
 public class If : Stmt
 {
 public If(Expr condition, Stmt thenBranch, Stmt elseBranch)
@@ -79,6 +99,22 @@ internal readonly Expr expression;
 public override R Accept<R>(IVisitor<R> visitor)
 {
  return visitor.VisitPrintStmt(this);
+}
+}
+public class Return : Stmt
+{
+public Return(Token keyword, Expr value)
+{
+this.keyword = keyword;
+this.value = value;
+}
+
+internal readonly Token keyword;
+internal readonly Expr value;
+
+public override R Accept<R>(IVisitor<R> visitor)
+{
+ return visitor.VisitReturnStmt(this);
 }
 }
 public class Var : Stmt
