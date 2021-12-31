@@ -326,7 +326,7 @@ namespace SharpLox
         private object LookupVariable(Token name, Expr expr)
         {
             int distance = locals[expr];
-            environment.GetAt(distance, name.lexeme);
+            return environment.GetAt(distance, name.lexeme);
 
             // if distance is object and it's null
             // return globals[name]
