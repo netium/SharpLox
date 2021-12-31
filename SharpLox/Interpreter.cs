@@ -207,10 +207,17 @@ namespace SharpLox
         public object VisitAssignExpr(Assign expr)
         {
             object value = Evaluate(expr.value);
-            int distance = locals[expr];
-            environment.AssignAt(distance, expr.name, value);
-            // if distance is object and null
-            // globals.Assign(expr.name, value);
+
+            if (locals.ContainsKey(expr))
+            {
+                int distance = locals[expr];
+                environment.AssignAt(distance, expr.name, value);
+            }
+            else
+            {
+                // if distance is object and null
+                globals.Assign(expr.name, value);
+            }
             return value;
         }
 
@@ -325,11 +332,15 @@ namespace SharpLox
 
         private object LookupVariable(Token name, Expr expr)
         {
-            int distance = locals[expr];
-            return environment.GetAt(distance, name.lexeme);
-
-            // if distance is object and it's null
-            // return globals[name]
+            if (locals.ContainsKey(expr))
+            {
+                int distance = locals[expr];
+                return environment.GetAt(distance, name.lexeme);
+            }
+            else
+            {
+                return globals.Get(name);
+            }
         }
     }
 }
