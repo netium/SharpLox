@@ -12,10 +12,13 @@ namespace SharpLox
         private readonly Function declaration;
         private readonly LoxEnvironment closure;
 
-        internal LoxFunction(Function declaration, LoxEnvironment closure)
+        private readonly bool isInitializer;
+
+        internal LoxFunction(Function declaration, LoxEnvironment closure, bool isInitializer)
         {
             this.closure = closure;
             this.declaration = declaration;
+            this.isInitializer = isInitializer;
         }
 
         public int Arity() => declaration.paramList.Count;
@@ -35,10 +38,21 @@ namespace SharpLox
             }
             catch (ReturnException exp)
             {
+                if (isInitializer) return closure.GetAt(0, "this");
+
                 return exp.Value;
             }
 
+            if (isInitializer) return closure.GetAt(0, "this");
+
             return null;
+        }
+
+        internal LoxFunction Bind(LoxInstance loxInstance)
+        {
+            LoxEnvironment environment = new LoxEnvironment(closure);
+            environment.Define("this", loxInstance);
+            return new LoxFunction(declaration, environment, isInitializer);
         }
 
         public override string ToString() => "<fn " + declaration.name.lexeme + ">";

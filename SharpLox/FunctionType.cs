@@ -9,6 +9,8 @@ namespace SharpLox
     internal enum FunctionType
     {
         NONE,
-        FUNCTION
+        FUNCTION,
+        INITIALIZER,
+        METHOD
     }
 }

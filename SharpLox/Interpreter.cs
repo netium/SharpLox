@@ -315,7 +315,7 @@ namespace SharpLox
 
         public object VisitFunctionStmt(Function stmt)
         {
-            var function = new LoxFunction(stmt, environment);
+            var function = new LoxFunction(stmt, environment, false);
 
             environment.Define(stmt.name.lexeme, function);
 
@@ -341,6 +341,58 @@ namespace SharpLox
             {
                 return globals.Get(name);
             }
+        }
+
+        public object VisitClassStmt(Class stmt)
+        {
+            environment.Define(stmt.name.lexeme, null);
+
+            Dictionary<string, LoxFunction> methods = new Dictionary<string, LoxFunction>();
+
+            foreach (var method in stmt.methods)
+            {
+                var function = new LoxFunction(method, environment, method.name.lexeme.Equals("init"));
+
+                methods.Add(method.name.lexeme, function);
+            }
+
+            var klass = new LoxClass(stmt.name.lexeme, methods);
+
+            environment.Assign(stmt.name, klass);
+
+            return null;
+        }
+
+        public object VisitGetExpr(Get expr)
+        {
+            object obj = Evaluate(expr.obj);
+
+            if (obj is LoxInstance)
+            {
+                return ((LoxInstance)obj).Get(expr.name);
+            }
+
+            throw new RuntimeErrorException(expr.name, "Only instance have properties");
+        }
+
+        public object VisitSetExpr(Set expr)
+        {
+            object obj = Evaluate(expr.obj);
+
+            if (!(obj is LoxInstance))
+            {
+                throw new RuntimeErrorException(expr.name, "Only instances have fields.");
+            }
+
+            object value = Evaluate(expr.value);
+            ((LoxInstance)obj).Set(expr.name, value);
+
+            return value;
+        }
+
+        public object VisitThisExpr(This expr)
+        {
+            return LookupVariable(expr.keyword, expr);
         }
     }
 }

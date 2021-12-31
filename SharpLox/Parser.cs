@@ -36,6 +36,7 @@ namespace SharpLox
         {
             try
             {
+                if (Match(TokenType.CLASS)) return ClassDeclaration();
                 if (Match(TokenType.FUN)) return Function("function");
                 if (Match(TokenType.VAR)) return VarDeclaration();
 
@@ -58,6 +59,23 @@ namespace SharpLox
             if (Match(TokenType.LEFT_BRACE)) return new Block(Block());
 
             return ExpressionStatement();
+        }
+        
+        private Stmt ClassDeclaration()
+        {
+            var name = Consume(TokenType.IDENTIFIER, "Expect class name.");
+            Consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+            List<Function> methods = new List<Function>();
+
+            while (!Check(TokenType.RIGHT_BRACE) && !IsAtEnd())
+            {
+                methods.Add(Function("method"));
+            }
+
+            Consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+            return new Class(name, methods);
         }
 
         private Stmt ReturnStatement()
@@ -196,6 +214,11 @@ namespace SharpLox
                     var name = ((Variable)expr).name;
                     return new Assign(name, value);
                 }
+                else if (expr is Get)
+                {
+                    var get = (Get)expr;
+                    return new Set(get.obj, get.name, value);
+                }
 
                 Error(equals, "Invalid assignment target.");
             }
@@ -309,6 +332,11 @@ namespace SharpLox
                 {
                     expr = FinishCall(expr);
                 }
+                else if (Match(TokenType.DOT))
+                {
+                    var name = Consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+                    expr = new Get(expr, name);
+                }
                 else
                 {
                     break;
@@ -327,6 +355,7 @@ namespace SharpLox
             {
                 return new Literal(Previous().literal);
             }
+            if (Match(TokenType.THIS)) return new This(Previous());
             if (Match(TokenType.IDENTIFIER))
             {
                 return new Variable(Previous());

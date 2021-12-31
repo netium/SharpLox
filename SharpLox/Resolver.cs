@@ -14,6 +14,14 @@ namespace SharpLox
 
         private readonly Stack<Dictionary<string, bool>> scopes = new Stack<Dictionary<string, bool>>();
 
+        private enum ClassType
+        {
+            NONE,
+            CLASS
+        }
+
+        private ClassType currentClass = ClassType.NONE;
+
         private FunctionType currentFunction = FunctionType.NONE;
 
         internal Resolver(Interpreter interpreter)
@@ -118,6 +126,11 @@ namespace SharpLox
 
             if (stmt.value != null)
             {
+                if (currentFunction == FunctionType.INITIALIZER)
+                {
+                    Program.Error(stmt.keyword, "Cannot return a value from an initializer.");
+                }
+
                 Resolve(stmt.value);
             }
 
@@ -242,6 +255,63 @@ namespace SharpLox
             EndScope();
 
             currentFunction = enclosingFunction;
+        }
+
+        public object VisitClassStmt(Class stmt)
+        {
+            ClassType enclosingClass = currentClass;
+            currentClass = ClassType.CLASS;
+
+            Declare(stmt.name);
+            Define(stmt.name);
+
+            BeginScope();
+            scopes.Peek().Add("this", true);
+
+            foreach (var method in stmt.methods)
+            {
+                FunctionType declaration = FunctionType.METHOD;
+
+                if (method.name.lexeme.Equals("init"))
+                {
+                    declaration = FunctionType.INITIALIZER;
+                }
+
+                ResolveFunction(method, declaration);
+            }
+
+            EndScope();
+
+            currentClass = enclosingClass;
+
+            return null;
+        }
+
+        public object VisitGetExpr(Get expr)
+        {
+            Resolve(expr.obj);
+
+            return null;
+        }
+
+        public object VisitSetExpr(Set expr)
+        {
+            Resolve(expr.value);
+            Resolve(expr.obj);
+
+            return null;
+        }
+
+        public object VisitThisExpr(This expr)
+        {
+            if (currentClass == ClassType.NONE)
+            {
+                Program.Error(expr.keyword, "Cannot use 'this' outside of a class.");
+            }
+
+            ResolveLocal(expr, expr.keyword);
+
+            return null;
         }
     }
 }
