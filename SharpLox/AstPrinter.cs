@@ -24,6 +24,11 @@ namespace SharpLox
             throw new NotImplementedException();
         }
 
+        public string VisitGetExpr(Get expr)
+        {
+            throw new NotImplementedException();
+        }
+
         public string VisitGroupingExpr(Grouping expr)
         {
             return ""; // return Parenthesize("group", expr.expression);
@@ -35,6 +40,21 @@ namespace SharpLox
         }
 
         public string VisitLogicalExpr(Logical expr)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string VisitSetExpr(Set expr)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string VisitSuperExpr(Super expr)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string VisitThisExpr(This expr)
         {
             throw new NotImplementedException();
         }
