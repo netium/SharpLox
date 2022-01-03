@@ -140,7 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chunk.cpp" />
-    <ClCompile Include="CLox.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="value.cpp" />
