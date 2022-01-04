@@ -10,6 +10,9 @@
 #include "debug.h"
 #include "vm.h"
 
+// Temporarily turn off using fopen_s() instead of fopen() warning 
+#pragma warning(disable : 4996)
+
 static void repl() {
     char line[1024];
     while (true) {
