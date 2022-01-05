@@ -36,15 +36,20 @@ static void runtimeError(const char* format, ...) {
 void initVM() {
 	resetStack();
 	vm.objects = NULL;
+	initTable(&vm.globals);
+	initTable(&vm.strings);
 }
 
 void freeVM() {
+	freeTable(&vm.globals);
+	freeTable(&vm.strings);
 	freeObjects();
 }
 
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op) do { if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { runtimeError("operands must be number."); return INTERPRET_RUNTIME_ERROR;} double b = AS_NUMBER(pop()); double a = AS_NUMBER(pop()); push(valueType(a op b)); } while (false)
 // #define BINARY_OP(op) do { double b = pop(); double a = pop(); push (a op b); } while (false)
 
@@ -76,13 +81,44 @@ static InterpretResult run() {
 		case OP_FALSE:
 			push(BOOL_VAL(false));
 			break;
+		case OP_POP:
+			pop();
+			break;
+		case OP_GET_GLOBAL:
+		{
+			ObjString* name = READ_STRING();
+			Value value;
+			if (!tableGet(&vm.globals, name, &value)) {
+				runtimeError("Undefined variable '%s'.", name->chars);
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			push(value);
+			break;
+		}
+		case OP_DEFINE_GLOBAL:
+		{
+			ObjString* name = READ_STRING();
+			tableSet(&vm.globals, name, peek(0));
+			pop();
+			break; 
+		}
+		case OP_SET_GLOBAL:
+		{
+			ObjString* name = READ_STRING();
+			if (tableSet(&vm.globals, name, peek(0))) {
+				tableDelete(&vm.globals, name);
+				runtimeError("Undefined variable '%s'.", name->chars);
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			break;
+		}
 		case OP_EQUAL:
-			{
+		{
 			Value b = pop();
 			Value a = pop();
 			push(BOOL_VAL(valuesEqual(a, b)));
 			break;
-			}
+		}
 		case OP_GREATER:
 			BINARY_OP(BOOL_VAL, >);
 			break;
@@ -124,16 +160,21 @@ static InterpretResult run() {
 			}
 			push(NUMBER_VAL(-AS_NUMBER(pop())));
 			break;
-		case OP_RETURN:
+		case OP_PRINT:
 		{
 			printValue(pop());
 			printf("\n");
+			break;
+		}
+		case OP_RETURN:
+		{
 			return INTERPRET_OK;
 		}
 		}
 	}
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
 #undef BINARY_OP
 }
 
