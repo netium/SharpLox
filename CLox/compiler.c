@@ -33,7 +33,18 @@ typedef enum {
 
 typedef void (*ParseFn)(bool canAssign);
 
+typedef enum {
+	TYPE_FUNCTION,
+	TYPE_SCRIPT
+} FunctionType;
+
 typedef struct {
+	Token name;
+	int depth;
+} Local;
+
+typedef struct {
+	struct Compiler* enclosing;
 	ObjFunction* function;
 	FunctionType type;
 
@@ -48,16 +59,6 @@ typedef struct {
 	Precedence precedence;
 } ParseRule;
 
-typedef struct {
-	Token name;
-	int depth;
-} Local;
-
-typedef enum {
-	TYPE_FUNCTION,
-	TYPE_SCRIPT
-} FunctionType;
-
 Parser parser;
 Compiler* current = NULL;
 Chunk* compilingChunk;
@@ -68,6 +69,8 @@ static void expression();
 static void statement();
 static void declaration();
 static ParseRule* getRule(TokenType type);
+static void and_(bool canAssign);
+static uint8_t argumentList();
 
 static Chunk* currentChunk() {
 	return &current->function->chunk;
@@ -147,8 +150,8 @@ static void emitLoop(int loopStart) {
 	int offset = currentChunk()->count - loopStart + 2;
 	if (offset > UINT16_MAX) error("Loop body too large.");
 
-	emiteByte((offset >> 8) & 0xff);
-	emiteByte(offset & 0xff);
+	emitByte((offset >> 8) & 0xff);
+	emitByte(offset & 0xff);
 }
 
 static int emitJump(uint8_t instruction) {
@@ -159,6 +162,7 @@ static int emitJump(uint8_t instruction) {
 }
 
 static void emitReturn() {
+	emitByte(OP_NIL);
 	emitByte(OP_RETURN);
 }
 
@@ -188,12 +192,16 @@ static void patchJump(int offset) {
 }
 
 static void initCompiler(Compiler* compiler, FunctionType type) {
+	compiler->enclosing = current;
 	compiler->function = NULL;
 	compiler->type = type;
 	compiler->localCount = 0;
 	compiler->scopeDepth = 0;
 	compiler->function = newFunction();
 	current = compiler;
+	if (type != TYPE_SCRIPT) {
+		current->function->name = copyString(parser.previous.start, parser.previous.length);
+	}
 	Local* local = &current->locals[current->localCount++];
 	local->depth = 0;
 	local->name.start = "";
@@ -209,6 +217,7 @@ static ObjFunction *endCompiler() {
 		disassembleChunk(currentChunk(), function->name != NULL ? function->name->chars : "script");
 	}
 #endif
+	current = current->enclosing;
 	return function;
 }
 
@@ -267,6 +276,11 @@ static void binary(bool canAssign) {
 		default:
 			return;
 	}
+}
+
+static void call(bool canAssign) {
+	uint8_t argCount = argumentList();
+	emitBytes(OP_CALL, argCount);
 }
 
 static void literal(bool canAssign) {
@@ -355,7 +369,7 @@ static void unary(bool canAssign) {
 }
 
 ParseRule rules[] = {
-	[TOKEN_LEFT_PAREN] = {grouping, NULL, PREC_NONE},
+	[TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
 	[TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
 	[TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
 	[TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
@@ -481,6 +495,8 @@ static uint8_t parseVariable(const char* errorMessage) {
 }
 
 static void markInitialized() {
+	if (current->scopeDepth == 0) return;
+
 	current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
@@ -491,6 +507,22 @@ static void defineVariable(uint8_t global) {
 	}
 
 	emitBytes(OP_DEFINE_GLOBAL, global);
+}
+
+static uint8_t argumentList() {
+	uint8_t argCount = 0;
+	if (!check(TOKEN_RIGHT_PAREN)) {
+		do {
+			expression();
+			if (argCount == 255) {
+				error("cannot have more than 255 arguments.");
+			}
+			argCount++;
+		} while (match(TOKEN_COMMA));
+	}
+
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+	return argCount;
 }
 
 static void and_(bool canAssign) {
@@ -516,6 +548,36 @@ static void block() {
 	}
 
 	consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
+static void function(FunctionType type) {
+	Compiler compiler;
+	initCompiler(&compiler, type);
+	beginScope();
+
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	if (!check(TOKEN_RIGHT_PAREN)) {
+		do {
+			current->function->arity++;
+			if (current->function->arity > 255) {
+				errorAtCurrent("Cannot have more than 255 parameters.");
+			}
+			uint8_t constant = parseVariable("Expect parameter name.");
+			defineVariable(constant);
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	block();
+	ObjFunction* function = endCompiler();
+	emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(function)));
+}
+
+static void funDeclaration() {
+	uint8_t global = parseVariable("Expect funciton name.");
+	markInitialized();
+	function(TYPE_FUNCTION);
+	defineVariable(global);
 }
 
 static void varDeclaration() {
@@ -605,6 +667,21 @@ static void printStatement() {
 	emitByte(OP_PRINT);
 }
 
+static void returnStatement() {
+	if (current->type == TYPE_SCRIPT) {
+		error("Cannot return from top-level code.");
+	}
+
+	if (match(TOKEN_SEMICOLON)) {
+		emitReturn();
+	}
+	else {
+		expression();
+		consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		emitByte(OP_RETURN);
+	}
+}
+
 static void whileStatement() {
 	int loopStart = currentChunk()->count;
 	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -643,6 +720,9 @@ static void synchronize() {
 }
 
 static void declaration() {
+	if (match(TOKEN_FUN)) {
+		funDeclaration();
+	}
 	if (match(TOKEN_VAR)) {
 		varDeclaration();
 	}
@@ -661,6 +741,9 @@ static void statement() {
 	}
 	else if (match(TOKEN_IF)) {
 		ifStatement();
+	}
+	else if (match(TOKEN_RETURN)) {
+		returnStatement();
 	}
 	else if (match(TOKEN_WHILE)) {
 		whileStatement();
