@@ -110,7 +110,7 @@ static InterpretResult run() {
 			break;
 		}
 		case OP_NIL:
-			push(NIL_VAL); 
+			push(NIL_VAL);
 			break;
 		case OP_TRUE:
 			push(BOOL_VAL(true));
@@ -126,7 +126,7 @@ static InterpretResult run() {
 			frame->slots[slot] = peek(0);
 			break;
 		}
-		case OP_GET_LOCAL: 
+		case OP_GET_LOCAL:
 		{
 			uint8_t slot = READ_BYTE();
 			push(frame->slots[slot]);
@@ -148,7 +148,7 @@ static InterpretResult run() {
 			ObjString* name = READ_STRING();
 			tableSet(&vm.globals, name, peek(0));
 			pop();
-			break; 
+			break;
 		}
 		case OP_SET_GLOBAL:
 		{
@@ -180,12 +180,15 @@ static InterpretResult run() {
 
 			Value value;
 			if (tableGet(&instance->fields, name, &value)) {
-				pop();
+				pop();	// Instance
 				push(value);
 				break;
 			}
-			runtimeError("Undefined property '%s'.", name->chars);
-			return INTERPRET_RUNTIME_ERROR;
+
+			if (!bindMethod(instance->klass, name)) {
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			break;
 		}
 		case OP_SET_PROPERTY: {
 			if (!IS_INSTANCE(peek(1))) {
@@ -207,27 +210,27 @@ static InterpretResult run() {
 			break;
 		}
 		case OP_GREATER:
-			BINARY_OP(BOOL_VAL, >);
+			BINARY_OP(BOOL_VAL, > );
 			break;
 		case OP_LESS:
-			BINARY_OP(BOOL_VAL, <);
+			BINARY_OP(BOOL_VAL, < );
 			break;
-		case OP_ADD: 
-			{
-				if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
-					concatenate();
-				}
-				else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-					double b = AS_NUMBER(pop());
-					double a = AS_NUMBER(pop());
-					push(NUMBER_VAL(a + b));
-				} 
-				else {
-					runtimeError("Operands must be two numbers or two strings.");
-					return INTERPRET_RUNTIME_ERROR;
-				}
-				break;
+		case OP_ADD:
+		{
+			if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+				concatenate();
 			}
+			else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+				double b = AS_NUMBER(pop());
+				double a = AS_NUMBER(pop());
+				push(NUMBER_VAL(a + b));
+			}
+			else {
+				runtimeError("Operands must be two numbers or two strings.");
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			break;
+		}
 		case OP_SUBTRACT:
 			BINARY_OP(NUMBER_VAL, -);
 			break;
@@ -235,12 +238,12 @@ static InterpretResult run() {
 			BINARY_OP(NUMBER_VAL, *);
 			break;
 		case OP_DIVIDE:
-			BINARY_OP(NUMBER_VAL, /);
+			BINARY_OP(NUMBER_VAL, / );
 			break;
 		case OP_NOT:
 			push(BOOL_VAL(isFalsey(pop())));
 			break;
-		case OP_NEGATE: 
+		case OP_NEGATE:
 			if (!IS_NUMBER(peek(0))) {
 				runtimeError("Operand must be a number.");
 				return INTERPRET_RUNTIME_ERROR;
@@ -314,6 +317,9 @@ static InterpretResult run() {
 		case OP_CLASS:
 			push(OBJ_VAL(newClass(READ_STRING())));
 			break;
+		case OP_METHOD:
+			defineMethod(READ_STRING());
+			break;
 		}
 	}
 #undef READ_BYTE
@@ -372,6 +378,11 @@ static bool call(ObjClosure* closure, int argCount) {
 static bool callValue(Value callee, int argCount) {
 	if (IS_OBJ(callee)) {
 		switch (OBJ_TYPE(callee)) {
+		case OBJ_BOUND_METHOD: {
+			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			vm.stackTop[-argCount - 1] = bound->receiver;
+			return call(bound->method, argCount);
+		}
 		case OBJ_CLASS: {
 			ObjClass* klass = AS_CLASS(callee);
 			vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
@@ -393,6 +404,20 @@ static bool callValue(Value callee, int argCount) {
 
 	runtimeError("Can only call functions and classes.");
 	return false;
+}
+
+static bool bindMethod(ObjClass* klass, ObjString* name) {
+	Value method;
+	if (!tableGet(&klass->methods, name, &method)) {
+		runtimeError("Undefined property '%s'.", name->chars);
+		return false;
+	}
+
+	ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+
+	pop();
+	push(OBJ_VAL(bound));
+	return true;
 }
 
 static ObjUpvalue* captureUpvalue(Value* local) {
@@ -427,6 +452,13 @@ static void closeUpvalues(Value* last) {
 		upvalue->location = &upvalue->closed;
 		vm.openUpvalues = upvalue->next;
 	}
+}
+
+static void defineMethod(ObjString* name) {
+	Value method = peek(0);
+	ObjClass* klass = AS_CLASS(peek(1));
+	tableSet(&klass->methods, name, method);
+	pop();
 }
 
 static bool isFalsey(Value value) {
