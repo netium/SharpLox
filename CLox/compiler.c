@@ -52,8 +52,10 @@ typedef struct {
 	bool isLocal;
 } Upvalue;
 
-typedef struct {
-	struct Compiler* enclosing;
+struct st_compiler;
+
+typedef struct st_compiler {
+	struct st_compiler * enclosing;
 	ObjFunction* function;
 	FunctionType type;
 

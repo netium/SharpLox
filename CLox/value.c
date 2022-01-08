@@ -35,10 +35,10 @@ void printValue(Value value) {
 		printf(AS_BOOL(value) ? "true" : "false");
 	}
 	else if (IS_NIL(value)) {
-		print("nil");
+		printf("nil");
 	}
 	else if (IS_NUMBER(value)) {
-		print("%g", AS_NUMBER(value));
+		printf("%g", AS_NUMBER(value));
 	}
 	else if (IS_OBJ(value)) {
 		printObject(value);
