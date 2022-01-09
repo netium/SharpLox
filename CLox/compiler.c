@@ -356,7 +356,7 @@ static void literal(bool canAssign) {
 
 static void grouping(bool canAssign) {
 	expression();
-	consume(TOKEN_LEFT_PAREN, "Expect ')' after expression.");
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
 static void number(bool canAssign) {
