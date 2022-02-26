@@ -435,7 +435,7 @@ static void super_(bool canAssign) {
 		emitByte(argCount);
 	}
 	else {
-		namedVariable(syntheticToken("suer"), false);
+		namedVariable(syntheticToken("super"), false);
 		emitBytes(OP_GET_SUPER, name);
 	}
 }
